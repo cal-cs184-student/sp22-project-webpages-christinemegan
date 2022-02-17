@@ -1,7 +1,282 @@
-<html>
-	<head>
-	</head>
-	<body>
-		Project 1 here
-	</body>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>
+  body {
+    padding: 100px;
+    width: 1000px;
+    margin: auto;
+    text-align: left;
+    font-weight: 300;
+    font-family: 'Open Sans', sans-serif;
+    color: #121212;
+  }
+  h1, h2, h3, h4 {
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+</style>
+<title>CS 184 Rasterizer</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+</head>
+
+
+<body>
+
+<h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2022</h1>
+<h1 align="middle">Project 1: Rasterizer</h1>
+<h2 align="middle">Maleny Ruiz & Christine Co, CS184-SP22 </h2>
+
+<div>
+
+    <h2 align="middle">Overview</h2>
+    <p>
+        In this project, we created a rasterizer that can draw triangles, supersample these images to reduce aliasing, perform transformations, and map textures on a given set of uv coordinates.
+        This series of tasks gave us a technical understanding of the computations that goes into creating digital images and how they can be manipulated using sampling, texture mapping, and transformations.
+    </p>
+
+    <h2 align="middle">Section I: Rasterization</h2>
+
+    <h3 align="middle">Part 1: Rasterizing single-color triangles</h3>
+
+    <!--<p>Here is an example 2x2 gridlike structure using an HTML table. Each <b>tr</b> is a row and each <b>td</b> is a column in that row. You might find this useful for framing and showing your result images in an organized fashion.</p>
+    -->
+    <p>
+        In this task, we created a rasterizer that would be able to iterate through a cooridnate system and render triangles. 
+        We first defined our coordinate system by taking the minimum and maximun x and y values based on the three points of the triangle given to us.
+        As the for loops iterate through each point, a helper function takes in that point, and two other points that define the start and end to a line. 
+        This helper function will find the dot product between two lines: the norm of one of the triangle's sidelengths
+        and a vector that connects the target point and one corner of the triangle. This dot product will determine which side of the triangle's sidelength the point is on. 
+        We ran this helper function on the current point and the two other sidelengths of the triangle. 
+        If the dot products for each of these functions returned the same sign or 0, that indicated that the current point was inside the triangle.
+    </p>
+
+    <div align="middle">
+        <table style="width=100%">
+            <tr>
+                <td>
+                    <img src="images/triangles_1.png" align="middle" width="400px" />
+                    <figcaption align="middle">rasterized triangles at SR = 1.</figcaption>
+                </td>
+                <td>
+                    <img src="images/green_cube_1.png" align="middle" width="400px" />
+                    <figcaption align="middle">rasterized cube at SR = 1.</figcaption>
+                </td>
+            </tr>
+            <br />
+            <tr>
+                <td>
+                    <img src="images/dragon_1.png" align="middle" width="400px" />
+                    <figcaption align="middle">rasterized dragon at SR = 1.</figcaption>
+                </td>
+                <td>
+                    <img src="images/flowers_1.png" align="middle" width="400px" />
+                    <figcaption align="middle">rasterized flowers at SR = 1.</figcaption>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+
+    <h3 align="middle">Part 2: Antialiasing triangles</h3>
+
+    <p>
+        In task 2 we updated the rasterize triangle function to support super sampling. Using the same double for loop we used to iterate through each of the original sized pixels in task 1, we nested another double for loop in order to iterate through each pixel according to our sample rate.
+        As we iterated through each of the subdivided pixels, we similarly checked if the center of the super pixels was within the triangle using the line test.
+        If each of the line tests returned all positive or all negative, our algorithm proceeds to add the point into the sample buffer and assign it to a corresponding color.
+        In order to map the indices of the smaller pixels according to the coordinates of the original sized pixels, we calculated the “new Y” and “new X” coordinates by multiplying both original x and y positions by the square root of the sample rate.
+        This position only marked the top corner of the pixel, so to find the offset, we added the counter of each of the for loops to take into account how many spaces away from the top corner the current point was. Then to find the new width, we multiplied the width by the square root of the sample rate as well.
+        Following the format of how we flattened the coordinates into the sample buffer array, we then multiplied the new Y with the new Width, and then added the new X.
+
+        <br />
+        <br />
+        Then within resolve to framebuffer, we needed to average out the super sampled pixel for each of the original sized pixels.
+        Once we averaged out each of the color values per original sized pixel, we reassigned the averaged color value to the frame buffer, indexed at the original coordinates of the image.
+        To average out the super sampled pixel from the sample buffer, we iterated through each of the original sized and super sampled pixels in the same way we had done in the rasterized triangle function,
+        adding up the values of the colors every iteration until it reached the sample rate value.
+        Once we added up each of the color’s values for the r, g, and b channels respectively, we divided each channel by the sample rate.
+        Then we finally assigned each pixel of the frame buffer to the averaged color * 255 in order to get a percentage.
+    </p>
+
+    <div align="middle">
+        <table style="width=100%">
+            <tr>
+                <td>
+                    <img src="images/cube1.png" align="middle" width="400px" />
+                    <figcaption align="middle">cube at SR = 1.</figcaption>
+                </td>
+                <td>
+                    <img src="images/cube16.png" align="middle" width="400px" />
+                    <figcaption align="middle">cube at SR = 16.</figcaption>
+                </td>
+            </tr>
+            <br />
+            <tr>
+                <td>
+                    <img src="images/tri_1.png" align="middle" width="400px" />
+                    <figcaption align="middle">triangles at SR = 1.</figcaption>
+                </td>
+                <td>
+                    <img src="images/tri_16.png" align="middle" width="400px" />
+                    <figcaption align="middle">triangles at SR = 16.</figcaption>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <h3 align="middle">Part 3: Transforms</h3>
+
+    <p>
+        In task 3, we implemented transformations using 3x3 matrices.
+        Using these new transformation functions, we edited our cubeman to put them in a fencing position.
+        We first edited the head and scaled it up to make it bigger to simulate a helmet.
+        Then we slimmed them down by scaling the torso down and making it longer.
+        Then we rotated the legs to put them in the right position of having a leg extended and one bent.
+        To bend the leg we rotated the leg to have one rectangle slanted and one straight.
+        We also bent an arm by rotating it to make a muscle flexing type of look.
+    </p>
+
+    <div align="middle">
+        <table style="width=100%">
+            <tr>
+                <td>
+                    <img src="images/fencing_man.png" align="middle" width="800px" />
+                    <figcaption align="middle">Rectangle translations to create rectangle human.</figcaption>
+                </td>
+
+            </tr>
+            <br />
+        </table>
+    </div>
+
+
+    <h2 align="middle">Section II: Sampling</h2>
+
+    <h3 align="middle">Part 4: Barycentric coordinates</h3>
+
+    <p>
+        In task 4, we updated the rasterize_interpolated_color_triangle function to interpolate between a defined set of colors. 
+        To do this, we recycled the code from our rasterize_triangle function, and instead of assigning the sample buffer to a single color, we set it equal to a helper function that will calculate the interpolated color based on the current x and y position within the triangle. 
+        This helper function will calculate the barycentric coordinates of the triangle, first finding the alpha, beta, and gamma coefficients using the x and y positions of each point on the triangle. 
+        Once the alpha, beta, and gamma values were calculated, we multiplied these coefficients to the colors at each point of the triangle: alpha to color 0, beta to color 1, and gamma to color 2.
+    </p>
+
+    <div align="middle">
+        <table style="width=100%">
+            <tr>
+                <td>
+                    <img src="images/bary_tri.png" align="middle" width="400px" />
+                    <figcaption align="middle">Diagram of Barycentric Interpolation on Triangle.</figcaption>
+                </td>
+                <td>
+                    <img src="images/bary_1.png" align="middle" width="400px" />
+                    <figcaption align="middle">Barycentric Interpolation used to make Color Picker wheel.</figcaption>
+                </td>
+            </tr>
+            <br />
+        </table>
+    </div>
+
+    <h3 align="middle">Part 5: "Pixel sampling" for texture mapping</h3>
+
+    <p>
+        For task 5, we implemented the rasterize_textured_triangle function, which maps a set of uv coordinates onto an image.
+        We did this by using the barycentric coordinates to interpolate the x and y coordinates of the rasterized screen samples onto the uv coordinates given.
+        We then created two kinds of filters, sample_nearest and sample_bilinear, that would map the texture onto the UV coordinate plane.
+        Sample_nearest takes the given u and v coordinates and rounds them to the nearest texel, and returns the associated color.
+        Sample bilinear looks at the four colors closest to the current UV coordinate and carries out three linear interpolations: two in the horizontal direction, and then one in the vertical direction to interpolate between the two previous calculations.
+        The bilinear sampling method proves to have less aliasing, given that it finds the in between color values according to a weighted average of the pixels surrounding it.
+    </p>
+
+    <div align="middle">
+        <table style="width=100%">
+            <tr>
+                <td>
+                    <img src="images/world_ns.png" align="middle" width="400px" />
+                    <figcaption align="middle">Globe map using nearest_sampling.</figcaption>
+                </td>
+                <td>
+                    <img src="images/world_bs.png" align="middle" width="400px" />
+                    <figcaption align="middle">Globe map using bilinear_sampling.</figcaption>
+                </td>
+            </tr>
+            <br />
+            <tr>
+                <td>
+                    <img src="images/bird_ns.png" align="middle" width="400px" />
+                    <figcaption align="middle">Parrot using nearest_sampling.</figcaption>
+                </td>
+                <td>
+                    <img src="images/bird_bs.png" align="middle" width="400px" />
+                    <figcaption align="middle">Parrot using bilinear_sampling.</figcaption>
+                </td>
+            </tr>
+            <br />
+            <tr>
+                <td>
+                    <img src="images/berk_ns.png" align="middle" width="400px" />
+                    <figcaption align="middle">Berkeley Logo using nearest_sampling.</figcaption>
+                </td>
+                <td>
+                    <img src="images/berk_bs.png" align="middle" width="400px" />
+                    <figcaption align="middle">Berkeley Logo using bilinear_sampling.</figcaption>
+                </td>
+            </tr>
+        </table>
+    </div>
+    <h3 align="middle">Part 6: "Level sampling" with mipmaps for texture mapping</h3>
+
+    <p>
+        Level sampling uses mipmaps to store different resolutions of the image’s data.
+        At Level 0, the mipmap stores full resolution, and as the level increases, the resolution decreases.
+        This sampling method allows us to adapt the amount of resolution applied to each region of the image according to a certain level of depth.
+        Although this method is good for antialiasing and decreases render time, it consequently requires more storage in order to store the data for each level.
+        To implement this, each of our sampling functions, sample_nearest and sample bilinear, take in a level.
+        Based on this level, each method multiplies the uv coordinate with the level’s corresponding width and height.
+        Then the sample methods retrieve the text associated with that scaled up coordinate.
+        <br />
+        <br />
+        Pixel sampling is similar in that it also proves to be a sufficient method for antialiasing an image.
+        Nearest as a sample method returns the texel that is closest to the passed in uv coordinate.
+        In contrast, the bilinear method interpolates the texel values for the four surrounding pixels.
+        As a result, bilinear produces a smoother image as it returns a color based on the averages of the pixels surrounding it.
+        Despite this nuance, both bilinear and nearest have a high performance, as they are able to anti-alias images at a fast rate.
+        <br />
+        <br />
+        Finally, while increasing the sample rate also is able to anti-alias images well, it requires more computation at less efficient speeds.
+    </p>
+
+    <div align="middle">
+        <table style="width=100%">
+            <tr>
+                <td>
+                    <img src="images/l_zero_p_linear.png" align="middle" width="400px" />
+                    <figcaption align="middle"> PMS = Linear ; LSM = Zero </figcaption>
+                </td>
+                <td>
+                    <img src="images/l_nearest_p_linear.png" align="middle" width="400px" />
+                    <figcaption align="middle"> PSM = Linear ; LSM = Linear </figcaption>
+                </td>
+            </tr>
+            <br />
+            <tr>
+                <td>
+                    <img src="images/L_zero_p_nearest.png" align="middle" width="400px" />
+                    <figcaption align="middle"> PMS = Nearest ; LSM = Zero </figcaption>
+                </td>
+                 <td>
+                    <img src="images/l_nearest_p_nearest.png" align="middle" width="400px" />
+                    <figcaption align="middle"> PMS = Nearest ; LSM = Nearest </figcaption>
+                </td>
+            </tr>
+            
+        </table>
+    </div>
+</div>
+
+<p>
+    Link :  https://cal-cs184-student.github.io/sp22-project-webpages-christinemegan/
+</p>
+
+</body>
 </html>
